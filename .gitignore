@@ -1,1 +1,5 @@
 ECal-gen-models/VQVAE2/latent samples
+.idea
+models/__pycache__/
+helpers/__pycache__/
+cfg/__pycache__/
