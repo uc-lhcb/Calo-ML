@@ -1,0 +1,4 @@
+artifact_location: file:///C:/Users/turbo/Python%20projects/Physics/2PartClassificator/mlruns/0
+experiment_id: '0'
+lifecycle_stage: active
+name: Two particle classifier
