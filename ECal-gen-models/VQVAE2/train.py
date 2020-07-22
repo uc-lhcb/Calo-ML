@@ -1,9 +1,7 @@
 import torch
 from torch import nn, optim
-from torch.utils.data import DataLoader
 from utilities import count_parameters
-from torchvision import datasets, transforms, utils
-
+from torchvision import utils
 from tqdm import tqdm
 
 def train(epoch, loader, model, optimizer, device):

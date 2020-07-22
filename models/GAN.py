@@ -12,11 +12,11 @@ from keras.layers import BatchNormalization
 from keras.layers import Cropping2D
 from keras.layers import Dense
 import keras
-from cfg.GAN_cfg import *
+from .cfg.GAN_cfg import *
 from helpers.functions import *
 from contextlib import redirect_stdout
 
-
+params = GAN_config()
 
 # define the standalone discriminator model
 def define_discriminator():

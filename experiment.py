@@ -3,11 +3,13 @@ from helpers.data import *
 from models.GAN import *
 from models.GAN import *
 from cfg.GAN_cfg import *
-from cfg.VAE_cfg import *
+# from .cfg.VAE_cfg import *
+
+gan_params = GAN_config()
 
 # Set seed for reproducible results
 # Not working
-if create_resproducible_result:
+if gan_params.create_resproducible_result:
 	from numpy.random import seed
 	seed(1)
 	import tensorflow
@@ -21,12 +23,12 @@ def main():
 
 	if experiment == "GAN":
 
-		for model_number in range(models_to_create):
+		for model_number in range(gan_params.models_to_create):
 
 			r_model, d_model, g_model, gan_model = create_models()
 
 			#Read model_id & updated it
-			with open(model_id_path, "r") as f:
+			with open(gan_params.model_id_path, "r") as f:
 				model_id = int(f.readlines()[0])
 				f.close()
 			# Number to identify the model
@@ -43,7 +45,7 @@ def main():
 			# Save models & metrics
 			generate_metrics(gan_model, g_model, d_model, model_id, g_train_history, d_train_history, g_test_history, d_test_history)
 
-			with open(model_id_path, "w") as f:
+			with open(gan_params.model_id_path, "w") as f:
 				f.seek(0)
 				f.truncate()
 				f.write(str(model_id + 1))

@@ -1,6 +1,10 @@
 from helpers.results import *
 from cfg.GAN_cfg import *
+from cfg.VAE_cfg import *
+import numpy as np
 
+gan_params = GAN_config()
+vae_params = VAE_config()
 
 def test(g_model, d_model, gan_model, g_test_input_data, d_test_input_data, model_id):
 
@@ -34,7 +38,7 @@ def test(g_model, d_model, gan_model, g_test_input_data, d_test_input_data, mode
 def train_vae(vae, input_train):
 
 	# Train autoencoder
-	vae_history = vae.fit(input_train, input_train, epochs=no_epochs, batch_size=batch_size, validation_split=validation_split)
+	vae_history = vae.fit(input_train, input_train, epochs=vae_params.no_epochs, batch_size=vae_params.batch_size, validation_split=vae_params.validation_split)
 
 	return vae_history
 
@@ -45,10 +49,10 @@ def train(g_model, d_model, gan_model, g_train_input_data, d_train_input_data, m
 	x_real = d_train_input_data
 	y_real = np.ones((number_of_samples, 1))
 
-	for i in range(training_iterations):
+	for i in range(gan_params.training_iterations):
 
-		first_split_point = int((i)*number_of_samples/training_iterations)
-		second_split_point = int((i+1)*number_of_samples/training_iterations)
+		first_split_point = int((i)*number_of_samples/gan_params.training_iterations)
+		second_split_point = int((i+1)*number_of_samples/gan_params.training_iterations)
 		# generate 'fake' examples
 		# generate points in latent space
 		# x_input = generate_latent_points(latent_dim, number_of_samples)
@@ -66,9 +70,9 @@ def train(g_model, d_model, gan_model, g_train_input_data, d_train_input_data, m
 		y_gan = np.ones((second_split_point - first_split_point, 1))
 
 		# update discriminator model weights
-		d_history = d_model.fit(X, y, validation_split=d_val_size, batch_size=d_batch_size, epochs=d_n_epochs, verbose=2)
+		d_history = d_model.fit(X, y, validation_split=gan_params.d_val_size, batch_size=gan_params.d_batch_size, epochs=gan_params.d_n_epochs, verbose=2)
 		# update the generator via the discriminator's error
-		g_history = gan_model.fit(X_gan, y_gan, validation_split=g_val_size, batch_size=g_batch_size, epochs=g_n_epochs, verbose=2)
+		g_history = gan_model.fit(X_gan, y_gan, validation_split=gan_params.g_val_size, batch_size=gan_params.g_batch_size, epochs=gan_params.g_n_epochs, verbose=2)
 
 	return d_history, g_history
 
@@ -84,3 +88,76 @@ def r_test(r_model, r_test_input_data, r_test_output_data):
 	r_history = r_model.evaluate(r_test_input_data, r_test_output_data, verbose = 2)
 
 	return r_history
+
+
+import torch
+from torch import nn, optim
+from utilities import count_parameters
+from torchvision import utils
+from tqdm import tqdm
+
+def train_VQVAE(epoch, loader, model, optimizer, device):
+    '''
+    params: epoch, loader, model, optimizer, device
+    checkpoint gets saved to "run_stats.pyt"
+    '''
+    loader = tqdm(loader)
+
+    criterion = nn.MSELoss()
+
+    latent_loss_weight = 0.25
+    sample_size = 25
+
+    mse_sum = 0
+    mse_n = 0
+    params = count_parameters(model)
+    for i, (img, labels) in enumerate(loader):
+        model.zero_grad()
+
+        img = img.to(device)
+
+        out, latent_loss = model(img)
+        recon_loss = criterion(out, img)
+        latent_loss = latent_loss.mean()
+        loss = recon_loss + latent_loss_weight * latent_loss
+        loss.backward()
+
+        optimizer.step()
+
+        mse_sum += recon_loss.item() * img.shape[0]
+        mse_n += img.shape[0]
+
+        lr = optimizer.param_groups[0]["lr"]
+
+        loader.set_description(
+            (
+                f"epoch: {epoch + 1}; mse: {recon_loss.item():.5f}; "
+                f"latent: {latent_loss.item():.3f}; avg mse: {mse_sum / mse_n:.5f}; "
+                f"lr: {lr:.5f}"
+            )
+        )
+
+        if i % 20 == 0:
+            model.eval()
+
+            sample = img[:sample_size]
+
+            with torch.no_grad():
+                out, _ = model(sample)
+
+            utils.save_image(
+                torch.cat([sample, out], 0),
+                f"samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.jpg",
+                nrow=sample_size,
+                normalize=True,
+                range=(-1, 1),
+            )
+
+            torch.save({
+            'model':model.state_dict(),
+            'optimizer':optimizer.state_dict(),
+            }, 'run_stats.pyt')
+            model.train()
+
+        ret = {'Metric: Latent Loss':latent_loss.item(), 'Metric: Average MSE':mse_sum/mse_n, 'Metric: Reconstruction Loss':recon_loss.item(), 'Parameter: Parameters':params, 'Artifact':'run_stats.pyt'}
+        yield ret

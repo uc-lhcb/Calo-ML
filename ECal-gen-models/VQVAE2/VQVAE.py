@@ -2,9 +2,6 @@ import torch
 from torch import nn
 from torchsummary import summary
 import torch.nn.functional as F
-import mlflow
-from torchvision import transforms
-
 
 class Swish(torch.autograd.Function):
     @staticmethod

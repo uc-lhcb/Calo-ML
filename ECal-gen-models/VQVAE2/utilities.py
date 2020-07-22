@@ -10,43 +10,10 @@ import lmdb
 import pickle
 from collections import namedtuple
 
-def select_gpu(selection=None):
-    """
-    Select a GPU if availale.
-
-    selection can be set to get a specific GPU. If left unset, it will REQUIRE that a GPU be selected by environment variable. If -1, the CPU will be selected.
-    """
-
-    if str(selection) == "-1":
-        return torch.device("cpu")
-
-    # This must be done before any API calls to Torch that touch the GPU
-    if selection is not None:
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(selection)
-
-    if not torch.cuda.is_available():
-        print("Selecting CPU (CUDA not available)")
-        return torch.device("CPU")
-    elif selection is None:
-        raise RuntimeError(
-            "CUDA_VISIBLE_DEVICES is *required* when running with CUDA available"
-        )
-
-    print(torch.cuda.device_count(), "available GPUs (initially using device 0):")
-    for i in range(torch.cuda.device_count()):
-        print(" ", i, torch.cuda.get_device_name(i))
-
-    return torch.device("cuda:0")
-
 def start_mlflow_experiment(experiment_name, model_store):
     '''
     model_store options: pv-finder, lane-finder, Calo-ML (not yet tho)
     '''
-    if model_store == 'lane-finder':
-        mlflow.tracking.set_tracking_uri('file:/share/lazy/will/ConstrastiveLoss/Logs')
-    if model_store == 'pv-finder':
-        mlflow.tracking.set_tracking_uri('file:/share/lazy/pv-finder_model_repo')
     if model_store == 'Calo-ML':
         raise NotImplementedError
 
@@ -70,18 +37,6 @@ def save_to_mlflow(stats_dict:dict, args):
             mlflow.log_artifact(value)
     for key, value in vars(args).items():
         mlflow.log_param(key, value)
-
-
-class Params(object):
-    '''
-    Order: batch_size, epochs, lr, img size
-    '''
-    def __init__(self, batch_size, epochs, lr, size, device):
-        self.batch_size = batch_size
-        self.epoch = epochs
-        self.lr = lr
-        self.size = size
-        self.device = device
 
 def count_parameters(model):
     """
