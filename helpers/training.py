@@ -1,10 +1,11 @@
-from helpers.results import *
+from results import *
 from cfg.GAN_cfg import *
 from cfg.VAE_cfg import *
 import numpy as np
 
 gan_params = GAN_config()
 vae_params = VAE_config()
+
 
 def test(g_model, d_model, gan_model, g_test_input_data, d_test_input_data, model_id):
 
@@ -44,7 +45,7 @@ def train_vae(vae, input_train):
 
 def train(g_model, d_model, gan_model, g_train_input_data, d_train_input_data, model_id):
 
-	number_of_samples = d_train_input_data.shape[0]
+    number_of_samples = d_train_input_data.shape[0]
 	# get randomly selected 'real' samples
 	x_real = d_train_input_data
 	y_real = np.ones((number_of_samples, 1))
@@ -160,4 +161,60 @@ def train_VQVAE(epoch, loader, model, optimizer, device):
             model.train()
 
         ret = {'Metric: Latent Loss':latent_loss.item(), 'Metric: Average MSE':mse_sum/mse_n, 'Metric: Reconstruction Loss':recon_loss.item(), 'Parameter: Parameters':params, 'Artifact':'run_stats.pyt'}
+        yield ret
+
+
+def train_VAE(epoch, loader, model, optimizer, device):
+    '''
+    params: epoch, loader, model, optimizer, device
+    checkpoint gets saved to "run_stats.pyt"
+    '''
+    loader = tqdm(loader)
+
+    loss_sum = 0
+    params = count_parameters(model)
+    for i, img in enumerate(loader):
+        model.zero_grad()
+
+        img = img.to(device)
+
+        recon_image, mu, logvar = model(img)
+        loss = vae_loss(recon_image, img, mu, logvar)
+
+        loss.backward()
+        optimizer.step()
+
+        loss_sum += loss.item() * img.shape[0]
+
+        # lr = optimizer.param_groups[0]["lr"]
+
+        loader.set_description(
+            (
+                f"epoch: {epoch + 1}; loss: {loss.item():.5f}; "
+            )
+        )
+
+        if i % 20 == 0:
+            model.eval()
+            sample_size = 10
+            sample = img[:sample_size]
+
+            with torch.no_grad():
+                out, _ = model(sample)
+
+            utils.save_image(
+                torch.cat([sample, out], 0),
+                f"samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.jpg",
+                nrow=sample_size,
+                # normalize=True,
+                # range=(-1, 1),
+            )
+
+            torch.save({
+            'model':model.state_dict(),
+            'optimizer':optimizer.state_dict(),
+            }, 'run_stats.pyt')
+            model.train()
+
+        ret = {'Metric: Loss':loss.item(), 'Parameter: Parameters':params, 'Artifact':'run_stats.pyt'}
         yield ret

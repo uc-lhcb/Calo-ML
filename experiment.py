@@ -58,6 +58,10 @@ def main():
 		#Load data
 		# load image data
 		g_train_input_data, g_test_input_data, input_train, d_test_input_data = load_real_samples(model_id)
+
+		for epoch in range(vae_params.training_iterations)
+			train_VAE(epoch, loader, model, optimizer, device)
+
 		# Load MNIST dataset
 		"""
 		(input_train, target_train), (input_test, target_test) = mnist.load_data()
