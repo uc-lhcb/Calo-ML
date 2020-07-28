@@ -24,6 +24,7 @@ if gan_params.create_resproducible_result:
 
 def main():
 
+# 	experiment = "VQVAE"
 	experiment = "VAE"
 	# experiment = "GAN"
 
@@ -102,6 +103,25 @@ def main():
 		viz_latent_space(encoder, data)
 		viz_decoded(encoder, decoder, data)
 		"""
+	elif experiment == "VQVAE":
 
+		model_id = 0
+
+		#Load data
+		# load image data
+		train_loader, val_loader = get_train_val_loaders()
+
+		# itll work in most cases
+		device = torch.device("cuda:0")
+
+		# args are "n", number of channels per layer, and "z_dim", number of dimensions in the latent space. z_dim gets sandwiched between linear layers so it can be basically
+		# whatever, kl term in loss only looks at this layer... i think?
+		model = VQVAE().to(device)
+		optimizer = optim.Adam(model.parameters(), lr=vae_params.lr)
+		for epoch in range(vae_params.no_epochs):
+			result = train_VQVAE(epoch, train_loader, model, optimizer, device)
+			for out in result:
+				save_to_mlflow(out)        
+        
 if __name__ == '__main__':
 	main()

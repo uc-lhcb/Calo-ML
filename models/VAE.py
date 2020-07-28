@@ -125,22 +125,23 @@ class torch_VAE(nn.Module):
     def __init__(self, n=32, z_dim=100):
         super().__init__()
         self.n = n
+        self.downsample_factor = 2
         self.encoder = nn.Sequential(
             ConvRelu(1, n),
             ConvRelu(n, n, downsample=True),
-            ConvRelu(n, n),
-            ConvRelu(n, n, downsample=True),
+#             ConvRelu(n, n),
+#             ConvRelu(n, n, downsample=True),
             ConvRelu(n, n // 2),
             nn.Flatten())
 
-        h_dim = (n // 2) * (32 // 4) * (32 // 4)
+        h_dim = (n // 2) * (32 // self.downsample_factor) * (32 // self.downsample_factor)
         self.mu_linear = nn.Linear(h_dim, z_dim)
         self.logvar_linear = nn.Linear(h_dim, z_dim)
         self.z_linear = nn.Linear(z_dim, h_dim)
 
         self.decoder = nn.Sequential(
             ConvRelu(n // 2, n),
-            ConvRelu(n, n, upsample=True),
+#             ConvRelu(n, n, upsample=True),
             ConvRelu(n, n),
             ConvRelu(n, n, upsample=True),
             ConvRelu(n, 1))
@@ -150,7 +151,7 @@ class torch_VAE(nn.Module):
 
         z, mu, logvar = self.bottleneck(encoded_image)
         z = self.z_linear(z)
-        z = z.view(z.size(0), self.n // 2, self.n // 4, self.n // 4)
+        z = z.view(z.size(0), self.n // 2, self.n // self.downsample_factor, self.n // self.downsample_factor)
         decoded_img = self.decoder(z)
         return decoded_img, mu, logvar
 
@@ -259,13 +260,11 @@ class ResBlock(nn.Module):
 
         layers = [
             nn.Conv2d(in_channel, out_channel, stride=stride, kernel_size=kernel_size, padding=(kernel_size - 1) // 2),
-            nn.BatchNorm2d(out_channel),
             #             nn.ReLU()]
             Swish_module()]
 
         extra_block = [
             nn.Conv2d(out_channel, out_channel, stride=1, kernel_size=3, padding=(3 - 1) // 2),
-            nn.BatchNorm2d(out_channel),
             #             nn.ReLU()]
             Swish_module()]
 
@@ -335,12 +334,12 @@ class VQVAE(nn.Module):
 
     def __init__(
             self,
-            in_channel=3,
-            channel=128,
+            in_channel=1,
+            channel=32,
             n_res_block=2,
             n_res_channel=32,
-            embed_dim=64,
-            n_embed=512,
+            embed_dim=16,
+            n_embed=32,
             decay=0.99
     ):
         '''

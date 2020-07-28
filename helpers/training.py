@@ -118,7 +118,7 @@ def train_VQVAE(epoch, loader, model, optimizer, device):
     mse_sum = 0
     mse_n = 0
     params = count_parameters(model)
-    for i, (img, labels) in enumerate(loader):
+    for i, img in enumerate(loader):
         model.zero_grad()
 
         img = img.to(device)
@@ -144,7 +144,7 @@ def train_VQVAE(epoch, loader, model, optimizer, device):
             )
         )
 
-        if i % 20 == 0:
+        if i % 300 == 0:
             model.eval()
 
             sample = img[:sample_size]
@@ -171,7 +171,9 @@ def train_VQVAE(epoch, loader, model, optimizer, device):
                'Artifact': 'run_stats.pyt'}
         yield ret
 
-
+# ==============================
+# Train VAE
+# ==============================
 def vae_loss(recon_x, x, mu, logvar):
     BCE = F.binary_cross_entropy(recon_x, x, size_average=False)
 
@@ -179,7 +181,7 @@ def vae_loss(recon_x, x, mu, logvar):
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp())
-    return BCE + KLD
+    return BCE #+ KLD
 
 
 def train_VAE(epoch, loader, model, optimizer, device):
@@ -207,14 +209,17 @@ def train_VAE(epoch, loader, model, optimizer, device):
 
         loader.set_description((f"epoch: {epoch + 1}; loss: {loss.item():.5f}; "))
 
-        if i % 100 == 0:
+        if i % 300 == 0:
             model.eval()
             sample_size = 10
             sample = img[:sample_size]
 
             with torch.no_grad():
                 out, _, _ = model(sample)
-                print(out.max())
+                print('output max', out.max().item())
+                print('sample max', sample.max().item())
+                print('output mean', out.mean().item())
+                print('truth mean', sample.mean().item())
             utils.save_image(
                 torch.cat([sample, out], 0),
                 f"samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.jpg",

@@ -139,7 +139,7 @@ def load_real_samples(model_id):
 
 # Will's dataloader code 
 def get_train_val_loaders():
-	spacal_df = pd.read_hdf(vae_params.df_path)
+	spacal_df = pd.read_hdf(vae_params.sleepy_path_to_calo_ml)
 
 	# make a copy for normalization, convert to numpy
 	spacal_series = spacal_df['EnergyDeposit']
@@ -147,8 +147,8 @@ def get_train_val_loaders():
 	n_spacal_array = spacal_array
 
 	# maybe delete later, trying to normalize for some reason
-	n_spacal_array /= n_spacal_array.std(1)[:, np.newaxis]
-	# n_spacal_array -= n_spacal_array.mean(1)[:, np.newaxis]
+	n_spacal_array /= 5000 # /= 10*n_spacal_array.std(1)[:, np.newaxis]
+# 	n_spacal_array -= n_spacal_array.mean(1)[:, np.newaxis]
 
 	# needs to be padded to 32x32 so we can donwsample twice. (three times?) lmao i have no idea
 	padded_array = np.pad(n_spacal_array.reshape(n_spacal_array.shape[0], 30, 30), 1)[1:-1]

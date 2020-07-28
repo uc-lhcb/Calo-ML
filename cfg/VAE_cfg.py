@@ -4,12 +4,12 @@ class VAE_config():
 
     def __init__(self):
         self.path_to_calo_ml = str(pathlib.Path().absolute())
-
+        self.sleepy_path_to_calo_ml = '/share/lazy/CaloML/CaloGan/CaloGan_photons.h5'
         # Data & model configuration
         self.img_width = 30
         self.img_height = 30
         self.batch_size = 128
-        self.no_epochs = 2
+        self.no_epochs = 20
         self.validation_split = 0.2
         self.verbosity = 1
         self.latent_dim = 100
@@ -65,7 +65,7 @@ class VAE_config():
         self.g_loss_func = 'binary_crossentropy'
 
         # VAE
-        self.lr = 1e-16
+        self.lr = 1e-9
 
         ################################
         # Architecture hyperparameters #
