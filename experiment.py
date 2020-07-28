@@ -4,6 +4,7 @@
 
 from helpers.training import *
 from helpers.data import *
+from helpers.utilities import *
 from models.GAN import *
 from models.VAE import *
 from cfg.GAN_cfg import *
@@ -69,12 +70,12 @@ def main():
 
 		# args are "n", number of channels per layer, and "z_dim", number of dimensions in the latent space. z_dim gets sandwiched between linear layers so it can be basically
 		# whatever, kl term in loss only looks at this layer... i think?
-		ಠ_ಠ = torch_VAE(vae_params.num_channels, vae_params.latent_dim).to(device)
-		optimizer = optim.Adam(ಠ_ಠ.parameters(), lr=vae_params.lr)
+		model = torch_VAE(vae_params.num_channels, vae_params.latent_dim).to(device)
+		optimizer = optim.Adam(model.parameters(), lr=vae_params.lr)
 		for epoch in range(vae_params.no_epochs):
-			result = train_VAE(epoch, train_loader, ಠ_ಠ.to(device), optimizer, device)
+			result = train_VAE(epoch, train_loader, model, optimizer, device)
 			for out in result:
-				save_to_mlflow(out, None)
+				save_to_mlflow(out)
 
 		# Load MNIST dataset
 		"""

@@ -9,7 +9,7 @@ from torch import nn, optim
 from helpers.utilities import count_parameters
 from torchvision import utils
 from tqdm import tqdm
-
+import torch.nn.functional as F
 gan_params = GAN_config()
 vae_params = VAE_config()
 
@@ -195,9 +195,6 @@ def train_VAE(epoch, loader, model, optimizer, device):
         model.zero_grad()
 
         img = img.to(device)
-        for device_thing in model.parameters():
-            print('model param is on device: ', device_thing.device)
-        print('data is on device', img.device)
         recon_image, mu, logvar = model(img)
         loss = vae_loss(recon_image, img, mu, logvar).to(device)
 
@@ -210,14 +207,14 @@ def train_VAE(epoch, loader, model, optimizer, device):
 
         loader.set_description((f"epoch: {epoch + 1}; loss: {loss.item():.5f}; "))
 
-        if i % 20 == 0:
+        if i % 100 == 0:
             model.eval()
             sample_size = 10
             sample = img[:sample_size]
 
             with torch.no_grad():
-                out, _ = model(sample)
-
+                out, _, _ = model(sample)
+                print(out.max())
             utils.save_image(
                 torch.cat([sample, out], 0),
                 f"samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.jpg",

@@ -11,7 +11,7 @@ def start_mlflow_experiment(experiment_name, model_store):
     mlflow.set_experiment(experiment_name)
 
 
-def save_to_mlflow(stats_dict: dict, args):
+def save_to_mlflow(stats_dict: dict):
     '''
     Requires that the dictionary be structured as:
     Parameters have the previx "Param: ", metrics have "Metric: ", and artifacts have "Artifact: "
@@ -26,8 +26,8 @@ def save_to_mlflow(stats_dict: dict, args):
             mlflow.log_metric(key[8:], value)
         if 'Artifact' in key:
             mlflow.log_artifact(value)
-    for key, value in vars(args).items():
-        mlflow.log_param(key, value)
+    # for key, value in vars(args).items():
+    #     mlflow.log_param(key, value)
 
 
 def count_parameters(model):

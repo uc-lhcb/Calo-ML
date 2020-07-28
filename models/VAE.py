@@ -7,7 +7,7 @@ from cfg.VAE_cfg import *
 
 # for wills stuff
 from torch import nn
-
+from torch.autograd import Variable
 
 params = VAE_config()
 
@@ -100,9 +100,9 @@ class VAE:
 class ConvRelu(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, downsample=False, upsample=False):
         super().__init__()
-        self.convrelu = [
+        self.convrelu = nn.ModuleList([
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) // 2),
-            nn.ReLU()]
+            nn.ReLU()])
         if downsample:
             self.convrelu.append(nn.MaxPool2d(2))
 
@@ -122,10 +122,9 @@ def to_var(x):
     return Variable(x)
 
 class torch_VAE(nn.Module):
-    def __init__(self, n, z_dim):
+    def __init__(self, n=32, z_dim=100):
         super().__init__()
         self.n = n
-
         self.encoder = nn.Sequential(
             ConvRelu(1, n),
             ConvRelu(n, n, downsample=True),
@@ -147,14 +146,12 @@ class torch_VAE(nn.Module):
             ConvRelu(n, 1))
 
     def forward(self, x):
-        print('x device', x.device)
         encoded_image = self.encoder(x)
 
         z, mu, logvar = self.bottleneck(encoded_image)
         z = self.z_linear(z)
         z = z.view(z.size(0), self.n // 2, self.n // 4, self.n // 4)
         decoded_img = self.decoder(z)
-
         return decoded_img, mu, logvar
 
     def reparameterize(self, mu, logvar):

@@ -9,7 +9,7 @@ class VAE_config():
         self.img_width = 30
         self.img_height = 30
         self.batch_size = 128
-        self.no_epochs = 10
+        self.no_epochs = 2
         self.validation_split = 0.2
         self.verbosity = 1
         self.latent_dim = 100
@@ -65,7 +65,7 @@ class VAE_config():
         self.g_loss_func = 'binary_crossentropy'
 
         # VAE
-        self.lr = 5e-4
+        self.lr = 1e-16
 
         ################################
         # Architecture hyperparameters #
