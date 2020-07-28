@@ -3,7 +3,10 @@ from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.models import Model
 from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras import backend as K
-from .cfg.VAE_cfg import *
+from cfg.VAE_cfg import *
+
+# for wills stuff
+from torch import nn
 
 
 params = VAE_config()
@@ -112,9 +115,13 @@ class ConvRelu(nn.Module):
 # ==================
 # Will's VAE code
 # ==================
-from torch import nn
 
-class VAE(nn.Module):
+def to_var(x):
+    if torch.cuda.is_available():
+        x = x.cuda()
+    return Variable(x)
+
+class torch_VAE(nn.Module):
     def __init__(self, n, z_dim):
         super().__init__()
         self.n = n
@@ -140,6 +147,7 @@ class VAE(nn.Module):
             ConvRelu(n, 1))
 
     def forward(self, x):
+        print('x device', x.device)
         encoded_image = self.encoder(x)
 
         z, mu, logvar = self.bottleneck(encoded_image)
@@ -152,7 +160,7 @@ class VAE(nn.Module):
     def reparameterize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
         # return torch.normal(mu, std)
-        esp = torch.randn(*mu.size())
+        esp = to_var(torch.randn(*mu.size()))
         z = mu + std * esp
         return z
 

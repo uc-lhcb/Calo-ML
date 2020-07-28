@@ -1,11 +1,16 @@
+# for adding packages on windows - for linux i think it is just "export" instead of "set"
+# set PYTHONPATH="$PYTHONPATH:/Calo-ML/helpers/"
+# set PYTHONPATH="$PYTHONPATH:/Calo-ML/cfg/"
+
 from helpers.training import *
 from helpers.data import *
 from models.GAN import *
-from models.GAN import *
+from models.VAE import *
 from cfg.GAN_cfg import *
-# from .cfg.VAE_cfg import *
+from cfg.VAE_cfg import *
 
 gan_params = GAN_config()
+vae_params = VAE_config()
 
 # Set seed for reproducible results
 # Not working
@@ -18,8 +23,8 @@ if gan_params.create_resproducible_result:
 
 def main():
 
-	#experiment = "VAE"
-	experiment = "GAN"
+	experiment = "VAE"
+	# experiment = "GAN"
 
 	if experiment == "GAN":
 
@@ -57,10 +62,19 @@ def main():
 
 		#Load data
 		# load image data
-		g_train_input_data, g_test_input_data, input_train, d_test_input_data = load_real_samples(model_id)
+		train_loader, val_loader = get_train_val_loaders()
 
-		for epoch in range(vae_params.training_iterations)
-			train_VAE(epoch, loader, model, optimizer, device)
+		# itll work in most cases
+		device = torch.device("cuda:0")
+
+		# args are "n", number of channels per layer, and "z_dim", number of dimensions in the latent space. z_dim gets sandwiched between linear layers so it can be basically
+		# whatever, kl term in loss only looks at this layer... i think?
+		ಠ_ಠ = torch_VAE(vae_params.num_channels, vae_params.latent_dim).to(device)
+		optimizer = optim.Adam(ಠ_ಠ.parameters(), lr=vae_params.lr)
+		for epoch in range(vae_params.no_epochs):
+			result = train_VAE(epoch, train_loader, ಠ_ಠ.to(device), optimizer, device)
+			for out in result:
+				save_to_mlflow(out, None)
 
 		# Load MNIST dataset
 		"""

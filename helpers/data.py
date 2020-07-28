@@ -1,6 +1,16 @@
 from sklearn.model_selection import train_test_split
 from helpers.results import *
+from cfg.GAN_cfg import *
+from cfg.VAE_cfg import *
+import numpy as np
+import pandas as pd
 
+# i do not like it either
+import torch
+from torch.utils.data import DataLoader
+
+gan_params = GAN_config()
+vae_params = VAE_config()
 
 #################
 # Discriminator #
@@ -14,7 +24,7 @@ def reshape_energy_grids(energy_grids):
 
 # Generate labels
 def discriminator_input():
-	data = pd.read_hdf(df_path)
+	data = pd.read_hdf(gan_params.df_path)
 	energy_grids = data.EnergyDeposit.tolist()
 	energy_grids = reshape_energy_grids(energy_grids)
 	return np.asarray(energy_grids)
@@ -53,7 +63,7 @@ def load_regressor_input_data():
 	return discriminator_input
 
 def load_regressor_output_data():
-	data = pd.read_hdf(df_path)
+	data = pd.read_hdf(gan_params.df_path)
 	output_data = load_x(data)
 	"""
 	for i, val in enumerate(output_data):
@@ -87,7 +97,7 @@ def load_regressor_samples():
 ##########
 # Return x and y data
 def generate_input_data():
-	data = pd.read_hdf(df_path)
+	data = pd.read_hdf(vae_params.df_path)
 
 	if add_g_input_parameters:
 		input_data = load_x(data)
@@ -125,3 +135,31 @@ def load_real_samples(model_id):
 	test_g_input_data = test_g_input_data.reshape(test_d_input_data.shape[0], g_input_length)
 
 	return train_g_input_data, test_g_input_data, train_d_input_data, test_d_input_data
+
+
+# Will's dataloader code 
+def get_train_val_loaders():
+	spacal_df = pd.read_hdf(vae_params.df_path)
+
+	# make a copy for normalization, convert to numpy
+	spacal_series = spacal_df['EnergyDeposit']
+	spacal_array = np.array(spacal_series.tolist())
+	n_spacal_array = spacal_array
+
+	# maybe delete later, trying to normalize for some reason
+	n_spacal_array -= n_spacal_array.mean(1)[:, np.newaxis]
+	n_spacal_array /= n_spacal_array.std(1)[:, np.newaxis]
+
+	# needs to be padded to 32x32 so we can donwsample twice. (three times?) lmao i have no idea
+	padded_array = np.pad(n_spacal_array.reshape(n_spacal_array.shape[0], 30, 30), 1)[1:-1]
+
+	# since we are treating this like an image, we have to unsqueeze at dim 1 to make it in the dimension of a
+	# greyscale image. i.e. it expects typically either (3, x, y) or (1, x, y), we currently have (x, y)
+	train_array = torch.Tensor(padded_array[round(50000*vae_params.validation_split):]).unsqueeze(1)
+	val_array = torch.Tensor(padded_array[:round(50000*vae_params.validation_split)]).unsqueeze(1)
+
+	# TODO(will) see if pin_memory = True is faster. also, see if a dataset is faster as opposed to just a big tensor
+	train_loader = DataLoader(train_array, batch_size=vae_params.batch_size, shuffle=True)
+	val_loader = DataLoader(val_array, batch_size=vae_params.batch_size, shuffle=True)
+
+	return train_loader, val_loader
