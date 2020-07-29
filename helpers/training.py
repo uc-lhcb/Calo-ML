@@ -1,5 +1,8 @@
 from helpers.results import *
 from cfg.GAN_cfg import *
+from sklearn.model_selection import GridSearchCV
+from keras.wrappers.scikit_learn import KerasClassifier
+from models.GAN import *
 
 
 def test(g_model, d_model, gan_model, g_test_input_data, d_test_input_data, model_id):
@@ -64,6 +67,16 @@ def train(g_model, d_model, gan_model, g_train_input_data, d_train_input_data, m
 		X_gan = g_train_input_data[first_split_point:second_split_point]
 		# create inverted labels for the fake samples
 		y_gan = np.ones((second_split_point - first_split_point, 1))
+
+		"""
+		# Code to tune hyperparameters
+		keras_estimator = KerasClassifier(build_fn=define_discriminator, verbose=1)
+		param_grid = dict(batch_size=d_batch_size_grid)
+		grid = GridSearchCV(estimator=keras_estimator, param_grid=param_grid)
+		grid.fit(X, y)
+		print(grid.best_score_)
+		print(grid.best_estimator_.sk_params["batch_size"])
+		"""
 
 		# update discriminator model weights
 		d_history = d_model.fit(X, y, validation_split=d_val_size, batch_size=d_batch_size, epochs=d_n_epochs, verbose=2)

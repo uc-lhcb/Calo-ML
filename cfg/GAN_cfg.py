@@ -1,8 +1,9 @@
+import numpy as np
 import pathlib
 path_to_calo_ml = str(pathlib.Path().absolute())
 
 models_to_create = 1
-create_resproducible_result = True
+create_resproducible_result = False
 # Use existing models to retrain them
 #discriminator_name = "0_discriminator_fold"
 discriminator_name = ""
@@ -53,13 +54,15 @@ random_state = 0 # Seed to split dataset
 # Discriminator
 d_n_epochs = 1
 d_batch_size = 256
+d_batch_size_grid = np.array([1, 128, 256, 512, 1024])
+d_batch_size_grid = [128, 256]
 d_lr = 0.0002
 d_beta_1 = 0.5
 d_loss_func = 'binary_crossentropy'
 d_metrics = ['accuracy']
 
 # Generator
-g_n_epochs = 2
+g_n_epochs = 1
 g_batch_size = 256
 g_lr = 0.0002
 g_beta_1 = 0.5
