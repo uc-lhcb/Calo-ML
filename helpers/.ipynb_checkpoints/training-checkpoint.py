@@ -175,13 +175,13 @@ def train_VQVAE(epoch, loader, model, optimizer, device):
 # Train VAE
 # ==============================
 def vae_loss(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x, size_average=False)
+    BCE = nn.MSELoss()(recon_x, x)
 
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp())
-    return BCE #+ KLD
+    return BCE, KLD
 
 
 def train_VAE(epoch, loader, model, optimizer, device):
@@ -198,8 +198,10 @@ def train_VAE(epoch, loader, model, optimizer, device):
 
         img = img.to(device)
         recon_image, mu, logvar = model(img)
-        loss = vae_loss(recon_image, img, mu, logvar).to(device)
-
+        MSE, KL = vae_loss(recon_image, img, mu, logvar)
+        MSE = MSE.to(device)
+        KL = KL.to(device)
+        loss = MSE+0.0007*KL
         loss.backward()
         optimizer.step()
 
@@ -207,7 +209,7 @@ def train_VAE(epoch, loader, model, optimizer, device):
 
         # lr = optimizer.param_groups[0]["lr"]
 
-        loader.set_description((f"epoch: {epoch + 1}; loss: {loss.item():.5f}; "))
+        loader.set_description((f"epoch: {epoch + 1}; MSE loss: {MSE.item():.5f}; KL loss: {KL.item():.5f} "))
 
         if i % 300 == 0:
             model.eval()

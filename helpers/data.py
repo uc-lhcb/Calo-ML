@@ -147,7 +147,8 @@ def get_train_val_loaders():
 	n_spacal_array = spacal_array
 
 	# maybe delete later, trying to normalize for some reason
-	n_spacal_array /= 5000 # /= 10*n_spacal_array.std(1)[:, np.newaxis]
+	n_spacal_array += 1 # /= 10*n_spacal_array.std(1)[:, np.newaxis]
+	n_spacal_array = np.log(n_spacal_array)
 # 	n_spacal_array -= n_spacal_array.mean(1)[:, np.newaxis]
 
 	# needs to be padded to 32x32 so we can donwsample twice. (three times?) lmao i have no idea

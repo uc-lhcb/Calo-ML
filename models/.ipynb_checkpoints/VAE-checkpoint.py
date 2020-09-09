@@ -138,21 +138,24 @@ class torch_VAE(nn.Module):
         self.mu_linear = nn.Linear(h_dim, z_dim)
         self.logvar_linear = nn.Linear(h_dim, z_dim)
         self.z_linear = nn.Linear(z_dim, h_dim)
-
+        self.z_linear = nn.Linear(z_dim, h_dim)
         self.decoder = nn.Sequential(
             ConvRelu(n // 2, n),
 #             ConvRelu(n, n, upsample=True),
             ConvRelu(n, n),
             ConvRelu(n, n, upsample=True),
-            ConvRelu(n, 1))
+            ConvRelu(n, 1),
+            nn.Flatten(),
+            nn.Linear(32*32, 32*32))
 
     def forward(self, x):
         encoded_image = self.encoder(x)
 
-        z, mu, logvar = self.bottleneck(encoded_image)
-        z = self.z_linear(z)
+        reparam, mu, logvar = self.bottleneck(encoded_image)
+        z = self.z_linear(reparam)
         z = z.view(z.size(0), self.n // 2, self.n // self.downsample_factor, self.n // self.downsample_factor)
-        decoded_img = self.decoder(z)
+        decoded_img = self.decoder(z).view(z.size(0), 1, 32, 32)
+        
         return decoded_img, mu, logvar
 
     def reparameterize(self, mu, logvar):

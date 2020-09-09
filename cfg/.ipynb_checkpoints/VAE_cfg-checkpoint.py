@@ -65,7 +65,7 @@ class VAE_config():
         self.g_loss_func = 'binary_crossentropy'
 
         # VAE
-        self.lr = 1e-9
+        self.lr = 3e-4
 
         ################################
         # Architecture hyperparameters #
