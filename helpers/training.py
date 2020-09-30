@@ -1,5 +1,6 @@
 from helpers.results import plot_energy_grids
 from cfg.GAN_cfg import cfg
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import GridSearchCV
 from keras.wrappers.scikit_learn import KerasClassifier
 import numpy as np
@@ -72,23 +73,42 @@ def train(outputs_path, g_model, d_model, gan_model, g_train_input_data, d_train
 		print(grid.best_estimator_.sk_params["batch_size"])
 		"""
 
+		# Define callbacks
+		generator_callbacks = [
+			ModelCheckpoint(outputs_path + "/models/discriminator_model_checkpoint.h5", monitor='val_acc',
+							verbose=1, save_best_only=True, mode='auto'),
+			EarlyStopping(monitor='acc', patience=5)]
+
 		# update discriminator model weights
 		d_history = d_model.fit(X, y, validation_split=cfg["Global"]["Data"]["val_size"],
-								batch_size=cfg["Discriminator"]["Training"]["batch_size"],
-								epochs=cfg["Discriminator"]["Training"]["n_epochs"], verbose=2)
+			batch_size=cfg["Discriminator"]["Training"]["batch_size"],
+			epochs=cfg["Discriminator"]["Training"]["n_epochs"], verbose=2,
+			callbacks=generator_callbacks)
+
+		#Define callbacks
+		discriminator_callbacks = [ModelCheckpoint(outputs_path + "/models/generator_model_checkpoint.h5", monitor='val_acc',
+						 verbose=1, save_best_only=True, mode='auto'),
+		 EarlyStopping(monitor='acc', patience=5)]
 
 		# update the generator via the discriminator's error
 		g_history = gan_model.fit(X_gan, y_gan, validation_split=cfg["Global"]["Data"]["val_size"],
-								  batch_size=cfg["Generator"]["Training"]["batch_size"],
-								  epochs=cfg["Generator"]["Training"]["n_epochs"], verbose=2)
-
+			  batch_size=cfg["Generator"]["Training"]["batch_size"],
+			  epochs=cfg["Generator"]["Training"]["n_epochs"], verbose=2,
+			  callbacks=discriminator_callbacks)
 	return d_history, g_history
 
-def train_r_model(r_model, train_input_data, train_output_data):
+def train_r_model(outputs_path, r_model, train_input_data, train_output_data):
+
+	# Define callbacks
+	regressor_callbacks = [
+		ModelCheckpoint(outputs_path + "/models/regressor_model_checkpoint.h5", monitor='val_acc',
+						verbose=1, save_best_only=True, mode='auto'),
+		EarlyStopping(monitor='acc', patience=5)]
 
 	r_history = r_model.fit(train_input_data, train_output_data, validation_split=cfg["Global"]["Data"]["val_size"],
-							batch_size=cfg["Regressor"]["Training"]["batch_size"], epochs=cfg["Regressor"]["Training"]["n_epochs"],
-							  verbose=2)
+			batch_size=cfg["Regressor"]["Training"]["batch_size"],
+			epochs=cfg["Regressor"]["Training"]["n_epochs"], verbose=2,
+			callbacks=regressor_callbacks)
 
 	return r_history
 
