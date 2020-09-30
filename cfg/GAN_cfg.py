@@ -1,97 +1,178 @@
-import numpy as np
 import pathlib
 path_to_calo_ml = str(pathlib.Path().absolute())
 
-models_to_create = 1
-create_resproducible_result = False
-# Use existing models to retrain them
-#discriminator_name = "0_discriminator_fold"
-discriminator_name = ""
-#generator_name = "0_generator_fold"
-generator_name = ""
-#regressor_name = "0_regressor_fold"
-regressor_name = ""
+cfg_global = {
 
-# WGAN implica usar la funció de loss W_loss, per fer mateixa red que Yandex.
-WGAN = False
-regressor = False
+    "Data": {
+      "_df_path_comment" : "Path to get the Calo data.",
+      "df_path" : path_to_calo_ml + "/data/inputs/CaloGan_photons.h5",
+      "_test_size_comment" : "% of the whole dataset to create de testing dataset.",
+      "test_size" : 0.15,
+      "val_size_comment" : "% of the whole dataset to create de testing dataset.",
+      "val_size" : 0.15,
+      "_random_state_comment" : "Seed to split dataset",
+      "random_state" : 0,
+      "_model_id_path_comment" : "Model identifier to have a model version control.",
+      "model_id_path" : path_to_calo_ml + "/cfg/model_version.txt",
+      "_outputs_path_comment" : "Path to store the outputs generated.",
+      "outputs_path" : path_to_calo_ml + "/data/outputs/"
+    },
 
-########
-# DATA #
-########
-df_path = path_to_calo_ml + '/data/CaloGan_photons.h5'
+    "Training": {
+      "_models_to_create_comment" : "Number of models to train. Each model means an iteration over the config file, "
+                                    "so to tune hyperparameters it is recommended to set at 1.",
+      "models_to_create" : 1,
+      "_reproducible_results_comment" : "Not working",
+      "reproducible_results" : False,
+      "_training_iterations_comment" : "Iterations between generator & discriminator. Both the training and testing datasets are splited according to this number.",
+      "training_iterations" : 1,
+      "_name_comment" : "Use existing models to retrain them",
+      "discriminator_name" : "",
+      "generator_name" : "",
+      "regressor_name" : ""
+    },
 
-# Generator input data
-# Add data to latent space
-g_input_parameters = ["ParticlePoint", "ParticleMomentum"]
-add_g_input_parameters = False
-g_input_length = 500 # length of latent space
-noise_dist = "normalized_gaussian" # mu = 0, sd = 1
-g_val_size = 0.15 # 15% of training
+    "Architecture": {
 
-# Discriminator input data
-d_input_params = ["EnergyDeposit"]
-energy_deposit_input_shape = [30,30]
-d_val_size = 0.15 # 15% of training
+    }
+  }
 
-# Regressor input data
-r_input_params = ["EnergyDeposit"]
-energy_deposit_input_shape = [30,30]
-r_val_size = 0.15 # 15% of training
+cfg_generator = {
 
-# Regressor output data
-r_output_parameters = ["ParticlePoint", "ParticleMomentum"]
+    "Data": {
+      "_input_parameters_comment" : "Known values that can be added to latent space.",
+      "input_parameters" : ["ParticlePoint", "ParticleMomentum"],
+      "_add_input_parameters_comment" : "Add the known values to the random latent space.",
+      "add_input_parameters" : False,
+      "_input_length_comment" : "Length of latent space.",
+      "input_length" : 500,
+      "_noise_dist_comment" : "Random distribution to create the latent space. Currently only works with normalized_gaussian (mu = 0, sd = 1)",
+      "noise_dist" : "normalized_gaussian"
+    },
 
-############################
-# Training hyperparameters #
-############################
-# Data
-training_iterations = 1
-model_id_path = path_to_calo_ml + "/cfg/model_version.txt"
-test_size = 0.15
-random_state = 0 # Seed to split dataset
+    "Training": {
+      "_n_epochs_comment" : "Epochs to train the generator.",
+      "n_epochs" : 1,
+      "_n_epochs_grid_comment" : "List of the values to optimize the generator epochs.",
+      "n_epochs_grid" : [5, 50],
+      "_batch_size_comment" : "Batch size to train the generator.",
+      "batch_size" : 256,
+      "_batch_size_grid_comment" : "List of the values to optimize the generator batch size.",
+      "batch_size_grid" : [128, 256],
+      "_lr_comment" : "Learning rate to train the generator.",
+      "lr" : 0.0002,
+      "_lr_grid_comment" : "List of the values to optimize the generator learning rate.",
+      "lr_grid" : [0.0002, 0.002],
+      "_beta_1_comment" : "Beta 1 to train the generator.",
+      "beta_1" : 0.5,
+      "_beta_1_grid_comment" : "List of the values to optimize the generator beta 1.",
+      "beta_1_grid" : [0.1, 0.5],
+      "_loss_func_comment" : "Loss function to train the generator.",
+      "loss_func" : "binary_crossentropy",
+      "_loss_func_grid_comment" : "List of the values to optimize the generator loss function.",
+      "loss_func_grid" : ["binary_crossentropy"],
+      "_WGAN_comment" : "Use the WGAN loss function",
+      "WGAN" : False
+    },
 
-# Discriminator
-d_n_epochs = 1
-d_batch_size = 256
-d_batch_size_grid = np.array([1, 128, 256, 512, 1024])
-d_batch_size_grid = [128, 256]
-d_lr = 0.0002
-d_beta_1 = 0.5
-d_loss_func = 'binary_crossentropy'
-d_metrics = ['accuracy']
+    "Architecture": {
 
-# Generator
-g_n_epochs = 1
-g_batch_size = 256
-g_lr = 0.0002
-g_beta_1 = 0.5
-g_loss_func = 'binary_crossentropy'
+    }
+  }
 
-# Regressor
-r_n_epochs = 2
-r_batch_size = 256
-r_lr = 0.0002
-r_beta_1 = 0.5
-r_loss_func = 'binary_crossentropy'
-r_metrics = ['accuracy']
+cfg_discriminator = {
 
+    "Data": {
+      "_input_params_comment" : "Known values of the energy deposited in the cells.",
+      "input_params" : ["EnergyDeposit"],
+      "_energy_deposit_input_shape_comment" : "Size of the known values of the energy deposited in the cells. WARNING: it should be the same as the discrimnator in_shape",
+      "energy_deposit_input_shape" : [30,30]
+    },
 
-################################
-# Architecture hyperparameters #
-################################
+    "Training": {
+      "_n_epochs_comment" : "Epochs to train the discriminator.",
+      "n_epochs" : 1,
+      "_n_epochs_grid_comment" : "List of the values to optimize the discriminator epochs.",
+      "n_epochs_grid" : [5, 50],
+      "_batch_size_comment" : "Batch size to train the discriminator.",
+      "batch_size" : 256,
+      "_batch_size_grid_comment" : "List of the values to optimize the discriminator batch size.",
+      "batch_size_grid" : [128, 256],
+      "_lr_comment" : "Learning rate to train the discriminator.",
+      "lr" : 0.0002,
+      "_lr_grid_comment" : "List of the values to optimize the discriminator learning rate.",
+      "lr_grid" : [0.0002, 0.002],
+      "_beta_1_comment" : "Beta 1 to train the discriminator.",
+      "beta_1" : 0.5,
+      "_beta_1_grid_comment" : "List of the values to optimize the discriminator beta 1.",
+      "beta_1_grid" : [0.1, 0.5],
+      "_loss_func_comment" : "Loss function to train the discriminator.",
+      "loss_func" : "binary_crossentropy",
+      "_loss_func_grid_comment" : "List of the values to optimize the discriminator loss function.",
+      "loss_func_grid" : ["binary_crossentropy"],
+      "_metrics_comment" : "Metric to optimize the discriminator.",
+      "metrics" : ["accuracy"],
+      "_WGAN_comment" : "Use the WGAN loss function",
+      "WGAN" : False
+    },
 
-# Discriminator
-d_in_shape = (energy_deposit_input_shape[0], energy_deposit_input_shape[1], 1)
-parallel_pooling = True
+    "Architecture": {
+      "_in_shape_comment" : "Input shape of the discrimnator. WARNING: it should be the same as the discrimnator energy_deposit_input_shape.",
+      "in_shape" : (30, 30, 1),
+      "_parallel_pooling_comment" : "Add parallel pooling to the architecture. Currently not working.",
+      "parallel_pooling" : False
+    }
+  }
 
-# Generator
+cfg_regressor = {
 
-# Regressor
-r_in_shape = (energy_deposit_input_shape[0], energy_deposit_input_shape[1], 1)
+    "Data": {
+      "_output_parameters_comment" : "Values that regressor should reconstruct. Currently not working.",
+      "output_parameters" : ["ParticlePoint", "ParticleMomentum"]
+    },
 
-###########
-# Outputs #
-###########
+    "Training": {
+      "_n_epochs_comment" : "Epochs to train the regressor.",
+      "n_epochs" : 1,
+      "_n_epochs_grid_comment" : "List of the values to optimize the regressor epochs.",
+      "n_epochs_grid" : [5, 50],
+      "_batch_size_comment" : "Batch size to train the regressor.",
+      "batch_size" : 256,
+      "_batch_size_grid_comment" : "List of the values to optimize the regressor batch size.",
+      "batch_size_grid" : [128, 256],
+      "_lr_comment" : "Learning rate to train the regressor.",
+      "lr" : 0.0002,
+      "_lr_grid_comment" : "List of the values to optimize the regressor learning rate.",
+      "lr_grid" : [0.0002, 0.002],
+      "_beta_1_comment" : "Beta 1 to train the regressor.",
+      "beta_1" : 0.5,
+      "_beta_1_grid_comment" : "List of the values to optimize the regressor beta 1.",
+      "beta_1_grid" : [0.1, 0.5],
+      "_loss_func_comment" : "Loss function to train the regressor.",
+      "loss_func" : "binary_crossentropy",
+      "_loss_func_grid_comment" : "List of the values to optimize the regressor loss function.",
+      "loss_func_grid" : ["binary_crossentropy"],
+      "_metrics_comment" : "Metric to optimize the regressor.",
+      "metrics" : ["accuracy"],
+      "_WGAN_comment": "Use the WGAN loss function",
+      "WGAN": False,
+    },
 
-outputs_path = path_to_calo_ml + '/outputs/'
+    "Architecture": {
+      "_regressor_comment" : "Add a regressor to the architecture which will be trained before the GAN",
+      "regressor" : False,
+      "_in_shape_comment" : "Input shape of the regressor.",
+      "in_shape" : (30, 30, 1),
+    }
+  }
+
+cfg = {
+  "Global": cfg_global,
+
+  "Generator": cfg_generator,
+
+  "Discriminator": cfg_discriminator,
+
+  "Regressor": cfg_regressor
+
+}
