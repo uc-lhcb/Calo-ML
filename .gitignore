@@ -5,3 +5,4 @@ helpers/__pycache__/
 cfg/__pycache__/
 __pycache__/
 data/
+cfg/model_version.txt

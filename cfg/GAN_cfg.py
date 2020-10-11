@@ -4,21 +4,26 @@ path_to_calo_ml = str(pathlib.Path().absolute())
 cfg_global = {
 
     "Data": {
-      "_df_path_comment" : "Path to get the Calo data.",
-      "df_path" : path_to_calo_ml + "/data/inputs/CaloGan_photons.h5",
-      "_test_size_comment" : "% of the whole dataset to create de testing dataset.",
-      "test_size" : 0.15,
-      "val_size_comment" : "% of the whole dataset to create de testing dataset.",
-      "val_size" : 0.15,
-      "_random_state_comment" : "Seed to split dataset",
-      "random_state" : 0,
-      "_model_id_path_comment" : "Model identifier to have a model version control.",
-      "model_id_path" : path_to_calo_ml + "/cfg/model_version.txt",
-      "_outputs_path_comment" : "Path to store the outputs generated.",
-      "outputs_path" : path_to_calo_ml + "/data/outputs/"
+      "_df_path_comment": "Path to get the Calo data.",
+      "df_path": path_to_calo_ml + "/data/inputs/CaloGan_photons.h5",
+      "_test_size_comment": "% of the whole dataset to create de testing dataset.",
+      "test_size": 0.15,
+      "val_size_comment": "% of the whole dataset to create de testing dataset.",
+      "val_size": 0.15,
+      "_random_state_comment": "Seed to split dataset",
+      "random_state": 0,
+      "_model_id_path_comment": "Model identifier to have a model version control.",
+      "model_id_path": path_to_calo_ml + "/cfg/model_version.txt",
+      "_outputs_path_comment": "Path to store the outputs generated.",
+      "outputs_path": path_to_calo_ml + "/data/outputs/"
     },
 
     "Training": {
+      "_type_comment": "Type of training. Either 'exploration' or 'creation'. Epxploration is to explore the error"
+                       " space iterating ovr many possibilities in the different hyperparameters (using searchgrid) and"
+                       " Creation is to create a GAN when the error space already explored",
+      #"type": "creation",
+      "type": "exploration",
       "_models_to_create_comment" : "Number of models to train. Each model means an iteration over the config file, "
                                     "so to tune hyperparameters it is recommended to set at 1.",
       "models_to_create" : 1,

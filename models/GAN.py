@@ -14,13 +14,10 @@ from keras.layers import Dense
 import keras
 from cfg.GAN_cfg import cfg
 from helpers.functions import *
-from contextlib import redirect_stdout
-
-print("GAN cfg: ", cfg.keys)
 
 
 # define the standalone discriminator model
-def define_discriminator(outputs_path):
+def define_discriminator():
 	model = Sequential()
 	model.add(Conv2D(32, (4, 4), strides=(1, 1), padding='same', input_shape=cfg["Discriminator"]["Architecture"]["in_shape"],
 					 kernel_initializer=keras.initializers.RandomNormal(seed=1337), bias_initializer='zeros'))
@@ -45,15 +42,12 @@ def define_discriminator(outputs_path):
 	# compile model
 	opt = Adam(lr=cfg["Discriminator"]["Training"]["lr"], beta_1=cfg["Discriminator"]["Training"]["beta_1"])
 	model.compile(loss=cfg["Discriminator"]["Training"]["loss_func"], optimizer=opt, metrics=cfg["Discriminator"]["Training"]["metrics"])
-	with open(outputs_path+ 'd_modelsummary.txt', 'w') as f:
-		with redirect_stdout(f):
-			model.summary()
 
 	return model
 
 
 # define the standalone discriminator model
-def define_regressor(outputs_path):
+def define_regressor():
 
 	inputs = keras.Input(shape=(30, 30, 1))
 
@@ -92,14 +86,11 @@ def define_regressor(outputs_path):
 	opt = Adam(lr=cfg["Regressor"]["Training"]["lr"], beta_1=cfg["Regressor"]["Training"]["beta_1"])
 	model.compile(loss=cfg["Regressor"]["Training"]["loss_func"], optimizer=opt, metrics=cfg["Regressor"]["Training"]["metrics"])
 
-	with open(outputs_path + 'r_modelsummary.txt', 'w') as f:
-		with redirect_stdout(f):
-			model.summary()
 	return model
 
 
 # define the standalone generator model
-def define_generator(outputs_path):
+def define_generator():
 
 	model = Sequential()
 	# foundation for 7x7 image
@@ -132,10 +123,6 @@ def define_generator(outputs_path):
 					 kernel_initializer=keras.initializers.RandomNormal(seed=1337), bias_initializer='zeros'))
 	model.add(ReLU())
 
-	with open(outputs_path + 'g_modelsummary.txt', 'w') as f:
-		with redirect_stdout(f):
-			model.summary()
-
 	return model
 
 
@@ -159,9 +146,9 @@ def define_gan(g_model, d_model):
 	return model
 
 
-def load_model(outputs_path, model_to_load):
+def load_model(model_to_load):
 	# load json and create model
-	path = outputs_path + "models/" + model_to_load
+	path = model_to_load
 	json_file = open(path + '.json', 'r')
 	loaded_model_json = json_file.read()
 	json_file.close()
@@ -176,28 +163,61 @@ def load_model(outputs_path, model_to_load):
 
 	return loaded_model
 
+
 def create_models(outputs_path):
 
 	# create the discriminator
 	if cfg["Global"]["Training"]["discriminator_name"] != "":
-		d_model = load_model(outputs_path, cfg["Global"]["Training"]["discriminator_name"])
+		d_model = load_model(cfg["Global"]["Training"]["discriminator_name"])
 	else:
-		d_model = define_discriminator(outputs_path)
+		d_model = define_discriminator()
 
 	# create the generator
 	if cfg["Global"]["Training"]["generator_name"] != "":
-		g_model = load_model(outputs_path, cfg["Global"]["Training"]["generator_name"])
+		g_model = load_model(cfg["Global"]["Training"]["generator_name"])
 	else:
-		g_model = define_generator(outputs_path)
+		g_model = define_generator()
 
-	# create the generator
+	# create the regressor
 	if cfg["Global"]["Training"]["regressor_name"] != "":
-		g_model = load_model(outputs_path, cfg["Global"]["Training"]["regressor_name"])
-		g_model = load_model(outputs_path, cfg["Global"]["Training"]["regressor_name"])
+		r_model = load_model(cfg["Global"]["Training"]["regressor_name"])
 	else:
-		r_model = define_regressor(outputs_path)
+		r_model = define_regressor()
 
 	# create the gan
 	gan_model = define_gan(g_model, d_model)
 
 	return r_model, d_model, g_model, gan_model
+
+
+# define the combined generator and discriminator model, for updating the generator
+def define_experimental_gan():
+	# make weights in the discriminator not trainable
+
+	# create the discriminator
+	if cfg["Global"]["Training"]["discriminator_name"] != "":
+		d_model = load_model(cfg["Global"]["Training"]["discriminator_name"])
+	else:
+		d_model = define_discriminator()
+
+	# create the generator
+	if cfg["Global"]["Training"]["generator_name"] != "":
+		g_model = load_model(cfg["Global"]["Training"]["generator_name"])
+	else:
+		g_model = define_generator()
+
+	d_model.trainable = False
+	# connect them
+	model = Sequential()
+	# add generator
+	model.add(g_model)
+	# add the discriminator
+	model.add(d_model)
+	# compile model
+	opt = Adam(lr=cfg["Generator"]["Training"]["lr"], beta_1=cfg["Generator"]["Training"]["beta_1"])
+	if cfg["Generator"]["Training"]["WGAN"]:
+		model.compile(loss=wasserstein_loss, optimizer=opt, metrics=cfg["Discriminator"]["Training"]["metrics"])
+	else:
+		model.compile(loss=cfg["Generator"]["Training"]["loss_func"], optimizer=opt,
+					  metrics=cfg["Discriminator"]["Training"]["metrics"])
+	return model

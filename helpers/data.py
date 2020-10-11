@@ -132,13 +132,13 @@ def load_real_samples(outputs_path):
 
 	return train_g_input_data, test_g_input_data, train_d_input_data, test_d_input_data
 
-def set_up_data(model_number):
+def set_up_data():
 	# Read model_id & updated it
 	with open(cfg["Global"]["Data"]["model_id_path"], "r") as f:
 		model_id = int(f.readlines()[0])
 		f.close()
 
-	outputs_path = cfg["Global"]["Data"]["outputs_path"] + "GAN_" + str(model_id) + "_" + str(model_number) + "/"
+	outputs_path = cfg["Global"]["Data"]["outputs_path"] + cfg["Global"]["Training"]["type"] + "_" + str(model_id) + "/"
 	if not os.path.exists(outputs_path):
 		os.makedirs(outputs_path)
 		os.makedirs(outputs_path + "/images/")

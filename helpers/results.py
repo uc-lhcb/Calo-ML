@@ -4,6 +4,8 @@ import pandas as pd
 from os import path
 import numpy as np
 import math
+from contextlib import redirect_stdout
+
 
 # Resahpe energy grids
 def reshape_energy_grids(energy_grid, new_shape=30):
@@ -66,8 +68,9 @@ def plot_energy_grids(outputs_path, energy_grids_to_plot, rows=2, columns=2, nam
 	for i in range(1, columns*rows +1):
 		fig.add_subplot(rows, columns, i)
 		plt.imshow(energy_grids_to_plot[i].reshape((30, 30)))
-	plt.savefig(outputs_path + "images/" + name)
 	#plt.show()
+	plt.savefig(outputs_path + "images/" + name)
+	#plt.savefig("C:/Users/uri_9/Desktop/Master/" + name)
 
 
 def save_model(outputs_path, model, name="model"):
@@ -76,7 +79,7 @@ def save_model(outputs_path, model, name="model"):
 	with open(outputs_path + "models/" + name + ".json", "w") as json_file:
 		json_file.write(model_json)
 	# serialize weights to HDF5
-	model.save_weights(outputs_path + "models/" + name + ".h5")
+	#model.save_weights(outputs_path + "models/" + name + ".h5")
 	print("Saved model " + str(name) + " to disk")
 
 
@@ -114,4 +117,13 @@ def generate_metrics(outputs_path, gan_model, g_model, d_model, model_id, g_trai
 	save_model(outputs_path, d_model, name="discriminator_fold")
 	save_model(outputs_path, g_model, name="generator_fold")
 	save_model(outputs_path, gan_model, name="gan_fold")
+	save_architecture(outputs_path, d_model, model_name="discriminator_fold")
+	save_architecture(outputs_path, g_model, model_name="generator_fold")
+	save_architecture(outputs_path, gan_model, model_name="gan_fold")
 	#save_experiment_conf(model_name, model_id, g_train_history, d_train_history, g_test_history, d_test_history)
+
+def save_architecture(outputs_path, model, model_name):
+
+	with open(outputs_path + model_name + '.txt', 'w') as f:
+		with redirect_stdout(f):
+			model.summary()
