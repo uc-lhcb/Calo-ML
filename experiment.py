@@ -36,11 +36,14 @@ def main():
 				print("model_id", model_id)
 
 				# train model
-				d_train_history, g_train_history = training.train(outputs_path, g_model, d_model, gan_model, g_train_input_data, d_train_input_data, model_id)
+				d_train_history, g_train_history = training.train(outputs_path, g_model, d_model, gan_model,
+																  g_train_input_data, d_train_input_data, model_id)
 				# test model
-				g_test_history, d_test_history = training.test(outputs_path, g_model, d_model, gan_model, g_test_input_data, d_test_input_data, model_id)
+				g_test_history, d_test_history = training.test(outputs_path, g_model, d_model, gan_model,
+															   g_test_input_data, d_test_input_data, model_id)
 				# Save models & metrics
-				results.generate_metrics(outputs_path, gan_model, g_model, d_model, model_id, g_train_history, d_train_history, g_test_history, d_test_history)
+				results.generate_metrics(outputs_path, gan_model, g_model, d_model, model_id, g_train_history,
+										 d_train_history, g_test_history, d_test_history)
 
 			elif cfg["Global"]["Training"]["type"] == "exploration":
 

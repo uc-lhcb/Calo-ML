@@ -17,7 +17,7 @@ from helpers.functions import *
 
 
 # define the standalone discriminator model
-def define_discriminator():
+def define_discriminator(lr=cfg["Discriminator"]["Training"]["lr"]):
 	model = Sequential()
 	model.add(Conv2D(32, (4, 4), strides=(1, 1), padding='same', input_shape=cfg["Discriminator"]["Architecture"]["in_shape"],
 					 kernel_initializer=keras.initializers.RandomNormal(seed=1337), bias_initializer='zeros'))
@@ -40,7 +40,7 @@ def define_discriminator():
 	model.add(Dense(1, activation='sigmoid', kernel_initializer=keras.initializers.RandomNormal(seed=1337),
 					bias_initializer='zeros'))
 	# compile model
-	opt = Adam(lr=cfg["Discriminator"]["Training"]["lr"], beta_1=cfg["Discriminator"]["Training"]["beta_1"])
+	opt = Adam(lr=lr, beta_1=cfg["Discriminator"]["Training"]["beta_1"])
 	model.compile(loss=cfg["Discriminator"]["Training"]["loss_func"], optimizer=opt, metrics=cfg["Discriminator"]["Training"]["metrics"])
 
 	return model

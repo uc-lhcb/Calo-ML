@@ -6,3 +6,4 @@ cfg/__pycache__/
 __pycache__/
 data/
 cfg/model_version.txt
+test.py

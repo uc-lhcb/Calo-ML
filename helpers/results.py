@@ -87,9 +87,9 @@ def save_experiment_conf(name, model_id, g_train_history, d_train_history, g_tes
 
 	if not path.exists(cfg["Global"]["Data"]["outputs_path"] + "cfg_data.xlsx"):
 
-		generator_params = ['generator_n_epochs', 'generator_batch_size', 'generator_lr', 'generator_beta_1',
+		generator_params = ['generator_epochs', 'generator_batch_size', 'generator_lr', 'generator_beta_1',
 							 'generator_loss_func', 'generator test loss', 'generator test accuracy']
-		dicscriminator_params = ['discriminator_n_epochs', 'discriminator_batch_size', 'discriminator_lr',
+		dicscriminator_params = ['discriminator_epochs', 'discriminator_batch_size', 'discriminator_lr',
 								  'discriminator_beta_1', 'discriminator_loss_func', 'discriminator_metrics',
 								 'discriminator test loss', 'discriminator test accuracy']
 		dataset_params = ['model_id', 'test_size', 'random_state']
@@ -100,12 +100,12 @@ def save_experiment_conf(name, model_id, g_train_history, d_train_history, g_tes
 		cfg_data = cfg_data.drop(['Unnamed: 0'], axis=1)
 
 	data = [name, model_id, cfg["Global"]["Data"]["test_size"], cfg["Global"]["Data"]["random_state"],
-			cfg["Generator"]["Training"]["n_epochs"], cfg["Generator"]["Training"]["batch_size"],
+			cfg["Generator"]["Training"]["epochs"], cfg["Generator"]["Training"]["batch_size"],
 			cfg["Generator"]["Training"]["lr"], cfg["Generator"]["Training"]["beta_1"],
 			cfg["Generator"]["Training"]["loss_func"],  g_test_history[0], g_test_history[1],
-			cfg["Discriminator"]["Training"]["n_epochs"],
+			cfg["Discriminator"]["Training"]["epochs"],
 			cfg["Generator"]["Training"]["loss_func"], g_test_history[0], g_test_history[1],
-			cfg["Discriminator"]["Training"]["n_epochs"], cfg["Discriminator"]["Training"]["batch_size"],
+			cfg["Discriminator"]["Training"]["epochs"], cfg["Discriminator"]["Training"]["batch_size"],
 			cfg["Discriminator"]["Training"]["lr"], cfg["Discriminator"]["Training"]["beta_1"],
 			cfg["Discriminator"]["Training"]["loss_func"],
 			cfg["Discriminator"]["Training"]["metrics"], d_test_history[0], d_test_history[1]]

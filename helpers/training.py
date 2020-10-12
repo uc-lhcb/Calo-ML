@@ -75,7 +75,7 @@ def train(outputs_path, g_model, d_model, gan_model, g_train_input_data, d_train
 			# update discriminator model weights
 			d_history = d_model.fit(X, y, validation_split=cfg["Global"]["Data"]["val_size"],
 									batch_size=cfg["Discriminator"]["Training"]["batch_size"],
-									epochs=cfg["Discriminator"]["Training"]["n_epochs"], verbose=2,
+									epochs=cfg["Discriminator"]["Training"]["epochs"], verbose=2,
 									callbacks=generator_callbacks)
 
 			# Define callbacks
@@ -87,7 +87,7 @@ def train(outputs_path, g_model, d_model, gan_model, g_train_input_data, d_train
 			# update the generator via the discriminator's error
 			g_history = gan_model.fit(X_gan, y_gan, validation_split=cfg["Global"]["Data"]["val_size"],
 									  batch_size=cfg["Generator"]["Training"]["batch_size"],
-									  epochs=cfg["Generator"]["Training"]["n_epochs"], verbose=2,
+									  epochs=cfg["Generator"]["Training"]["epochs"], verbose=2,
 									  callbacks=discriminator_callbacks)
 
 			return d_history, g_history
@@ -97,7 +97,7 @@ def train(outputs_path, g_model, d_model, gan_model, g_train_input_data, d_train
 		#Data
 		X_fake = g_model.predict(g_train_input_data)
 		y_fake = np.zeros((number_of_samples, 1))
-		plot_energy_grids(outputs_path, X_fake, name="fake_images")
+		#plot_energy_grids(outputs_path, X_fake, name="fake_images")
 
 		X, y = np.vstack((x_real, X_fake)), \
 			   np.vstack((y_real, y_fake))
@@ -106,16 +106,23 @@ def train(outputs_path, g_model, d_model, gan_model, g_train_input_data, d_train
 		# create inverted labels for the fake samples
 		y_gan = np.ones((number_of_samples, 1))
 
-
 		# Explore Discriminator
 		print("Exploring the error space of the discriminator")
 		keras_d_estimator = KerasClassifier(build_fn=GAN.define_discriminator, verbose=1)
-		param_grid = dict(batch_size=cfg["Discriminator"]["Training"]["batch_size_grid"])
+
+		param_grid = dict()
+		for train_param_key, train_param_value in cfg["Discriminator"]["Training"].items():
+			if not "comment" in train_param_key and "grid" in train_param_key:
+				param_grid[train_param_key.replace("_grid", "")] = train_param_value
+
+		#param_grid = dict(batch_size=cfg["Discriminator"]["Training"]["batch_size_grid"])
 		d_grid = GridSearchCV(estimator=keras_d_estimator, param_grid=param_grid, cv=3)
 		d_grid.fit(X, y)
+		print("Search space best score")
 		print(d_grid.best_score_)
-		print(d_grid.best_estimator_.sk_params["batch_size"])
-
+		print("Search space best parameters")
+		print(d_grid.best_estimator_)
+		#print(d_grid.best_estimator_.sk_params["batch_size"])
 
 		# Explore Generator
 		print("Exploring the error space of the generator")
@@ -123,8 +130,11 @@ def train(outputs_path, g_model, d_model, gan_model, g_train_input_data, d_train
 		param_grid = dict(batch_size=cfg["Generator"]["Training"]["batch_size_grid"])
 		g_grid = GridSearchCV(estimator=keras_g_estimator, param_grid=param_grid, cv=2)
 		g_grid.fit(X_gan, y_gan)
-		print(g_grid.best_score_)
-		print(g_grid.best_estimator_.sk_params["batch_size"])
+		print("Search space best score")
+		print(d_grid.best_score_)
+		print("Search space best parameters")
+		print(d_grid.best_estimator_)
+		# print(d_grid.best_estimator_.sk_params["batch_size"])
 
 		return d_grid, g_grid
 
@@ -139,7 +149,7 @@ def train_r_model(outputs_path, r_model, train_input_data, train_output_data):
 
 	r_history = r_model.fit(train_input_data, train_output_data, validation_split=cfg["Global"]["Data"]["val_size"],
 			batch_size=cfg["Regressor"]["Training"]["batch_size"],
-			epochs=cfg["Regressor"]["Training"]["n_epochs"], verbose=2,
+			epochs=cfg["Regressor"]["Training"]["epochs"], verbose=2,
 			callbacks=regressor_callbacks)
 
 	return r_history
