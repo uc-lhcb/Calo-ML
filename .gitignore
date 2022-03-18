@@ -3,6 +3,13 @@ ECal-gen-models/VQVAE2/latent samples
 models/__pycache__/
 helpers/__pycache__/
 cfg/__pycache__/
+<<<<<<< HEAD
 data
 samples
 mlruns
+=======
+__pycache__/
+data/
+cfg/model_version.txt
+test.py
+>>>>>>> b610356cffd5896db110cac671d4f2a96dcde474

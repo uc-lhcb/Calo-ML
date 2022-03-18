@@ -116,11 +116,6 @@ class ConvRelu(nn.Module):
 # Will's VAE code
 # ==================
 
-def to_var(x):
-    if torch.cuda.is_available():
-        x = x.cuda()
-    return Variable(x)
-
 class torch_VAE(nn.Module):
     def __init__(self, n=32, z_dim=100):
         super().__init__()
@@ -133,35 +128,54 @@ class torch_VAE(nn.Module):
 #             ConvRelu(n, n, downsample=True),
             ConvRelu(n, n // 2),
             nn.Flatten())
-
+        
         h_dim = (n // 2) * (32 // self.downsample_factor) * (32 // self.downsample_factor)
+
+        self.register_buffer("reference", torch.zeros(1))
+        
         self.mu_linear = nn.Linear(h_dim, z_dim)
         self.logvar_linear = nn.Linear(h_dim, z_dim)
-        self.z_linear = nn.Linear(z_dim, h_dim)
+        # this will be 3 for just x/y/z momentum, or 5 for momentum + x/y position
+        self.momentum_to_z = nn.Linear(3, z_dim)
         self.z_linear = nn.Linear(z_dim, h_dim)
         self.decoder = nn.Sequential(
             ConvRelu(n // 2, n),
-#             ConvRelu(n, n, upsample=True),
-            ConvRelu(n, n),
             ConvRelu(n, n, upsample=True),
             ConvRelu(n, 1),
             nn.Flatten(),
-            nn.Linear(32*32, 32*32))
+#             nn.Linear(32*32, 32*32),
+            nn.ReLU())
+        
+        self.mask_decoder = nn.Sequential(
+            ConvRelu(n // 2, n),
+            ConvRelu(n, n, upsample=True),
+            ConvRelu(n, 1),
+            nn.Flatten(),
+            nn.Linear(32*32, 32*32),
+            nn.Sigmoid())
 
-    def forward(self, x):
+    def forward(self, x, attributes):
         encoded_image = self.encoder(x)
 
         reparam, mu, logvar = self.bottleneck(encoded_image)
+        if attributes is not None:
+            reparam = reparam + self.momentum_to_z(attributes) 
+        KLD = self.KLD(mu, logvar)
         z = self.z_linear(reparam)
         z = z.view(z.size(0), self.n // 2, self.n // self.downsample_factor, self.n // self.downsample_factor)
         decoded_img = self.decoder(z).view(z.size(0), 1, 32, 32)
+        decoded_mask = self.mask_decoder(z).view(z.size(0), 1, 32, 32)
         
-        return decoded_img, mu, logvar
+        
+        return decoded_img, decoded_mask, KLD
+    
+    def KLD(self, mu, logvar):
+        return -0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp())
 
     def reparameterize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
         # return torch.normal(mu, std)
-        esp = to_var(torch.randn(*mu.size()))
+        esp = torch.randn(*mu.size()).to(self.reference.device)
         z = mu + std * esp
         return z
 
@@ -329,6 +343,44 @@ class Decoder(nn.Module):
     def forward(self, input):
         return self.blocks(input)
 
+class LinearDecoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.blocks = nn.Sequential(
+            nn.Linear(32*8*8, 32*8),
+            nn.ReLU(),
+            nn.Linear(32*8, 32*16),
+            nn.ReLU(),
+            nn.Linear(32*16, 32*16),
+            nn.ReLU(),
+            nn.Linear(32*16, 32*32),
+            nn.ReLU(),
+            nn.Linear(32*32, 32*32),
+            nn.ReLU(),
+        )
+
+    def forward(self, input):
+        out = self.blocks(input)
+#         .mean(dim=-1).view(32, 32)
+        return out.view(input.size(0), 32, 32)
+
+class ScalarEncoder(nn.Module):
+    def __init__(self, n_pred_props = 2):
+        super().__init__()
+        self.n_pred_props = n_pred_props
+        self.encode = nn.Sequential(
+            nn.Conv2d(16, 8, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(8, n_pred_props, kernel_size=3, padding=1),
+            nn.ReLU(),
+        )
+        
+        self.linear_projections = nn.ModuleList([nn.Linear(4*4, 1) for _ in range(n_pred_props)])
+
+    def forward(self, input):
+        out = self.encode(input)
+        return torch.cat([self.linear_projections[i](out[:, i, ...].view(out.size(0), -1)) for i in range(self.n_pred_props)], dim=1)
 
 class VQVAE(nn.Module):
     '''
@@ -361,17 +413,28 @@ class VQVAE(nn.Module):
         # Decoders,
         #         self.dec_t = Decoder(embed_dim, embed_dim, channel, n_res_block, n_res_channel, stride=2)
         self.dec_t = Decoder(embed_dim, embed_dim, channel, extra_residual_blocks=n_res_block, upsample='Once')
+        self.bool_dec_t = Decoder(embed_dim, embed_dim, channel, extra_residual_blocks=n_res_block, upsample='Once')        
         self.quantize_conv_b = nn.Conv2d(embed_dim + channel, embed_dim, 1)
         self.quantize_b = Quantize(embed_dim, n_embed)
         self.upsample_t = nn.ConvTranspose2d(embed_dim, embed_dim, 4, stride=2, padding=1)
+        
         #         self.dec = Decoder(embed_dim + embed_dim, in_channel, channel, n_res_block, n_res_channel, stride=4)
         self.dec = Decoder(embed_dim + embed_dim, in_channel, extra_layers=2, extra_residual_blocks=2, upsample='Twice')
+        self.bool_dec = Decoder(embed_dim + embed_dim, in_channel, extra_layers=2, extra_residual_blocks=2, upsample='Twice')
+        self.linear_dec = LinearDecoder()
+        self.scalar_encoder = ScalarEncoder(n_pred_props = 5)
+        
+        # 3 for just momentum, 5 for pos+momentum
+        self.everything = nn.Linear(3, 16*4*4)
 
-    def forward(self, input):
+    def forward(self, input, pos_and_momentum=None):
         quant_t, quant_b, diff, _, _ = self.encode(input)
-        dec = self.decode(quant_t, quant_b)
-
-        return dec, diff
+        if pos_and_momentum is not None:
+            quant_t_new = quant_t + self.everything(pos_and_momentum).view(input.size(0), 16, 4, 4)
+        pred_props = self.scalar_encoder(quant_t)
+        dec, bool_dec = self.decode(quant_t, quant_b)
+#         return torch.sigmoid(dec), pred_props, torch.sigmoid(bool_dec), diff
+        return F.relu(dec), pred_props, torch.sigmoid(bool_dec), diff
 
     def encode(self, input):
         enc_b = self.enc_b(input)
@@ -396,8 +459,10 @@ class VQVAE(nn.Module):
         upsample_t = self.upsample_t(quant_t)
         quant = torch.cat([upsample_t, quant_b], 1)
         dec = self.dec(quant)
-
-        return dec
+        bool_dec = self.bool_dec(quant)
+#         bool_dec = self.linear_dec(quant.view(quant.size(0), -1)).unsqueeze(1)
+        
+        return dec, bool_dec
 
     def decode_code(self, code_t, code_b):
         quant_t = self.quantize_t.embed_code(code_t)
